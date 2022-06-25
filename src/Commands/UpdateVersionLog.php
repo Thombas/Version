@@ -3,7 +3,6 @@
 namespace ThomasFielding\Version\Commands;
 
 use Throwable;
-use Carbon\Carbon;
 use Illuminate\Console\Command;
 use ThomasFielding\Version\Services\VersionService;
 
