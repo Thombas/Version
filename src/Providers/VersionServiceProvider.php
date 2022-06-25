@@ -110,7 +110,15 @@ class VersionServiceProvider extends ServiceProvider
     ): array {
         // If the directory to scan does not exist, create it
         if (!is_dir($directory)) {
-            mkdir($directory);
+            $steps = explode('/', $directory);
+
+            foreach ($steps as $key => $step) {
+                $glue = implode('/', array_slice($steps, 0, $key + 1));
+
+                if ($glue && !is_dir($glue)) {
+                    mkdir($glue);
+                }
+            }
         }
 
         // Get an array of folder contents
