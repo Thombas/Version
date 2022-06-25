@@ -61,7 +61,7 @@ class AddVersionLog extends Command
         $level = in_array($level, ['major', 'minor', 'patch']) ? $level : 'patch';
 
         // Copy the template
-        $filename = $this->vendorService->createLog(
+        $filename = $this->versionService->createLog(
             $git,
             $level,
             $this->option('description'),
