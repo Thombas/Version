@@ -33,9 +33,7 @@ public function __construct(VersionService $versionService) {
 Or alternatively if you cannot inject the dependency into your constructor:
 
 ```
-public function __construct(VersionService $versionService) {
-	$this->versionService = new VersionService();
-}
+$this->versionService = new VersionService();
 ```
 
 Once initialised, you can use the following functions:
