@@ -12,7 +12,7 @@ class UpdateLogTest extends TestCase
     {
         // Setup
         $versionService = new VersionService(dirname(__FILE__) . '/../Stubs/tmp', '0.0.0', []);
-        $filename = $versionService->createLog('', 'patch', null, null);
+        $filename = $versionService->createLog('', 'patch', null, null, null);
         $data = json_decode(
             file_get_contents(dirname(__FILE__) . '/../Stubs/tmp/' . $filename)
         );

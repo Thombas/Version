@@ -98,6 +98,7 @@ class VersionService
      * @param string $level The level to store (Major, Minor, Patch)
      * @param string|null $description The description for the log
      * @param string|null $author The autor to credit
+     * @param string|null $tags A tag to associate with the version release (Feature, Hotfix, Bugfix, Epic, etc.)
      *
      * @return string
      */
@@ -105,7 +106,8 @@ class VersionService
         string $git,
         string $level,
         ?string $description,
-        ?string $author
+        ?string $author,
+        ?string $tags
     ): string {
         // Create the current timestamp
         $timestamp = Carbon::now()->format('Y_m_d_His');
@@ -126,6 +128,7 @@ class VersionService
         $template->id = Str::uuid();
         $template->type = $level;
         $template->timestamp = Carbon::now()->getTimestamp();
+        $template->tags = $tags;
 
         // Store the template as a new file/log
         file_put_contents(

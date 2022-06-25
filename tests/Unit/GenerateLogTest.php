@@ -14,7 +14,7 @@ class GenerateLogTest extends TestCase
         $versionService = new VersionService(dirname(__FILE__) . '/../Stubs/tmp', '0.0.0', []);
 
         // Mock
-        $response = $versionService->createLog('', 'patch', null, null);
+        $response = $versionService->createLog('', 'patch', null, null, null);
 
         // Assert
         $this->assertFileExists(dirname(__FILE__) . '/../Stubs/tmp/' . $response);
@@ -27,7 +27,7 @@ class GenerateLogTest extends TestCase
         $versionService = new VersionService(dirname(__FILE__) . '/../Stubs/tmp', '0.0.0', []);
 
         // Mock
-        $response = $versionService->createLog('', 'minor', null, null);
+        $response = $versionService->createLog('', 'minor', null, null, null);
 
         // Assert
         $this->assertFileExists(dirname(__FILE__) . '/../Stubs/tmp/' . $response);
@@ -40,7 +40,7 @@ class GenerateLogTest extends TestCase
         $versionService = new VersionService(dirname(__FILE__) . '/../Stubs/tmp', '0.0.0', []);
 
         // Mock
-        $response = $versionService->createLog('', 'major', null, null);
+        $response = $versionService->createLog('', 'major', null, null, null);
 
         // Assert
         $this->assertFileExists(dirname(__FILE__) . '/../Stubs/tmp/' . $response);

@@ -15,7 +15,7 @@ class AddVersionLog extends Command
      *
      * @var string
      */
-    protected $signature = 'version:log {level=patch} {--description=} {--author=}';
+    protected $signature = 'version:log {level=patch} {--description=} {--author=} {--tags=}';
 
     /**
      * The console command description.
@@ -61,7 +61,13 @@ class AddVersionLog extends Command
         $level = in_array($level, ['major', 'minor', 'patch']) ? $level : 'patch';
 
         // Copy the template
-        $filename = $this->vendorService->createLog($git, $level, $this->option('description'), $this->option('author'));
+        $filename = $this->vendorService->createLog(
+            $git,
+            $level,
+            $this->option('description'),
+            $this->option('author'),
+            $this->option('tags')
+        );
 
         // Print to the console
         $this->info('Generated a new ' . $level . ' log: ' . $filename);
