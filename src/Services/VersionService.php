@@ -242,7 +242,12 @@ class VersionService
             $json[] = json_decode(file_get_contents($this->root . '/' . $log));
         }
 
-        return $json;
+        // Currenct timestamp for sorting/ordering
+        $timestamp = Carbon::now()->getTimestamp();
+
+        return collect($json)->sortBy(function ($log) use ($timestamp) {
+            return $timestamp - $log->timestamp;
+        })->reverse()->toArray();
     }
 
     /**
@@ -283,6 +288,33 @@ class VersionService
     }
 
     /**
+     * Get the minor count for the iterated minor version
+     *
+     * @param array $logs The log entries to iterate through
+     * @param int $iteration The current key value of the log array to start from
+     *
+     * @return int
+     */
+    protected function getMinorCount(
+        array $logs,
+        int $iteration
+    ): int
+    {
+        // Flag for whether an iteration to break the minor release has been found
+        $skip = false;
+
+        $count = collect(array_splice($logs, $iteration))->filter(function ($loop) use (&$skip) {
+            if (in_array($loop->type, ['major'])) {
+                $skip = true;
+            }
+
+            return !$skip && $loop->type !== 'patch';
+        })->count();
+
+        return $count > 0 ? $count : 1;
+    }
+
+    /**
      * Get the current/future minor version number of the application
      *
      * @param ?string $version The version to increment if fetching future (Major, Minor or Patch)
@@ -305,6 +337,120 @@ class VersionService
                 return $iteration;
                 break;
         }
+    }
+
+    /**
+     * Get the patch count for the iterated minor version
+     *
+     * @param array $logs The log entries to iterate through
+     * @param int $iteration The current key value of the log array to start from
+     *
+     * @return int
+     */
+    protected function getPatchCount(
+        array $logs,
+        int $iteration
+    ): int
+    {
+        // Flag for whether an iteration to break the minor release has been found
+        $skip = false;
+
+        $count = collect(array_splice($logs, $iteration))->filter(function ($loop) use (&$skip) {
+            if (in_array($loop->type, ['major', 'minor'])) {
+                $skip = true;
+            }
+
+            return !$skip;
+        })->count();
+
+        return $count > 0 ? $count : 1;
+    }
+
+    /**
+     * Get the formatted patch notes to pass to your frontend
+     *
+     * @return object
+     */
+    public function getPatchNotes(): object
+    {
+        $logs = array_reverse($this->getLogs());
+
+        $major = $this->getMajorVersionNumber();
+        $minor = $this->getMinorVersionNumber();
+        $patch = $this->getPatchVersionNumber();
+
+        $blocks = (object) [];
+
+        collect($logs)->each(function ($log, $iteration) use ($logs, &$blocks, &$major, &$minor, &$patch) {
+            switch ($log->type) {
+                case 'major':
+                    // Iterate values
+                    $major--;
+                    $minor = $this->getMinorCount($logs, $iteration);
+                    $patch = $this->getPatchCount($logs, $iteration);
+
+                    // Store the data
+                    $blocks->{$major} = (object) array_merge(
+                        (array) $log,
+                        (isset($blocks->{$major}) ? [] : [
+                            'notes' => (Object) []
+                        ])
+                    );
+
+                    break;
+                case 'minor':
+                    // Iterate values
+                    $patch = $this->getPatchCount($logs, $iteration);
+
+                    // Set the major version loop if not already set
+                    if (!isset($blocks->{$major})) {
+                        $blocks->{$major} = (object) [
+                            'notes' => (object) []
+                        ];
+                    }
+                    
+                    // Decrement values
+                    if (count((array) $blocks->{$major}->notes) > 0) {
+                        $minor--;
+                    }
+
+                    // Store the data
+                    $blocks->{$major}->notes->{$minor} = (object) array_merge(
+                        (array) $log,
+                        (isset($blocks->{$major}->notes->{$minor}) ? [] : [
+                            'notes' => (Object) []
+                        ])
+                    );
+
+                    break;
+                default:
+                    // Set the major version loop if not already set
+                    if (!isset($blocks->{$major})) {
+                        $blocks->{$major} = (object) [
+                            'notes' => (object) []
+                        ];
+                    }
+
+                    // Set the minor version loop if not already set
+                    if (!isset($blocks->{$major}->notes->{$minor})) {
+                        $blocks->{$major}->notes->{$minor} = (object) [
+                            'notes' => (object) []
+                        ];
+                    }
+
+                    // Decrement values
+                    if (count((array) $blocks->{$major}->notes->{$minor}->notes) > 0) {
+                        $patch--;
+                    }
+
+                    // Store the data
+                    $blocks->{$major}->notes->{$minor}->notes->{$patch} = (object) $log;
+
+                    break;
+            }
+        });
+
+        return $blocks;
     }
 
     /**
