@@ -2,6 +2,8 @@
 
 namespace ThomasFielding\Version\Services;
 
+use Carbon\Carbon;
+use Illuminate\Support\Str;
 use ThomasFielding\Version\Exceptions\DuplicateLogException;
 use ThomasFielding\Version\Exceptions\UncommittedBranchException;
 
@@ -15,9 +17,14 @@ class VersionService
      *
      * @return void
      */
-    public function __construct()
-    {
-        $this->root = config('version.root', './version');
+    public function __construct(
+        ?string $root = null,
+        ?string $initial = null,
+        ?array $template = null
+    ) {
+        $this->root = $root ?? config('version.root', './version');
+        $this->initial = $initial ?? config('version.initial', '0.0.0');
+        $this->template = $template ?? config('version.template', []);
     }
 
     /**
@@ -32,9 +39,9 @@ class VersionService
     ): string {
         $logs = $this->getLogs();
 
-        $major = 0;
-        $minor = 0;
-        $patch = 0;
+        $major = $this->getInitialVersionNumber(0);
+        $minor = $this->getInitialVersionNumber(1);
+        $patch = $this->getInitialVersionNumber(2);
 
         foreach ($logs as $log) {
             switch ($log->type) {
@@ -85,6 +92,65 @@ class VersionService
     }
 
     /**
+     * Create a new log entry
+     *
+     * @param string $git The git id of the current branch
+     * @param string $level The level to store (Major, Minor, Patch)
+     * @param string|null $description The description for the log
+     * @param string|null $author The autor to credit
+     *
+     * @return string
+     */
+    public function createLog(
+        string $git,
+        string $level,
+        ?string $description,
+        ?string $author
+    ): string {
+        // Create the current timestamp
+        $timestamp = Carbon::now()->format('Y_m_d_His');
+
+        // Generate the file name
+        $filename = $timestamp . '_' . $level . '_' . $this->getVersionNumber($level);
+
+        // Fetch the template
+        $template = (Object) array_merge(
+            json_decode(file_get_contents(dirname(__FILE__) . '/../Stubs/template.json'), true),
+            (array) $this->template
+        );
+
+        // Update the template values
+        $template->author = $author;
+        $template->branch_id = $git;
+        $template->description = $description;
+        $template->id = Str::uuid();
+        $template->type = $level;
+        $template->timestamp = Carbon::now()->getTimestamp();
+
+        // Store the template as a new file/log
+        file_put_contents(
+            $this->getRoot() . '/' . $filename . '.json',
+            json_encode($template, JSON_PRETTY_PRINT)
+        );
+
+        // Return the full filename
+        return $filename . '.json';
+    }
+
+    /**
+     * Extract the json data from a provided log file
+     *
+     * @param string $filename The full filename to extract from
+     *
+     * @return object
+     */
+    protected function extractLogData(
+        string $filename
+    ): object {
+        return json_decode(file_get_contents($this->root . '/' . $filename));
+    }
+
+    /**
      * Get the name of the file by log id
      *
      * @param string $id The log id
@@ -103,7 +169,7 @@ class VersionService
                 return false;
             }
 
-            $content = json_decode(file_get_contents($this->root . '/' . $item));
+            $content = $this->extractLogData($item);
 
             return $content->id == $id;
         });
@@ -140,6 +206,19 @@ class VersionService
         }
 
         return $git;
+    }
+
+    /**
+     * Fetch the initial version number value
+     *
+     * @param int $level The level to fetch (Major = 0; Minor = 1; Patch = 2)
+     *
+     * @return string
+     */
+    protected function getInitialVersionNumber(
+        int $level = 2
+    ): string {
+        return explode('.', $this->initial)[$level];
     }
 
     /**
@@ -281,5 +360,31 @@ class VersionService
             $this->getMinorVersionNumber($version),
             $this->getPatchVersionNumber($version)
         ]);
+    }
+
+    /**
+     * Update the defined log file
+     *
+     * @param string $id The id of the log file to edit
+     *
+     * @return void
+     */
+    public function updateLog(
+        string $id
+    ): void {
+        // Get the log file name
+        $filename = $this->getFileById($id);
+
+        // Extract the log data
+        $template = $this->extractLogData($filename);
+
+        // Update the template values
+        $template->timestamp = Carbon::now()->getTimestamp();
+
+        // Store the template as a new file/log
+        file_put_contents(
+            $this->root . '/' . $filename,
+            json_encode($template, JSON_PRETTY_PRINT)
+        );
     }
 }

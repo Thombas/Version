@@ -62,14 +62,8 @@ class UpdateVersionLog extends Command
         // Get the log file
         $template = $logs[0];
 
-        // Update the template values
-        $template->timestamp = Carbon::now()->getTimestamp();
-
-        // Store the template as a new file/log
-        file_put_contents(
-            $this->versionService->getRoot() . '/' . $this->versionService->getFileById($template->id),
-            json_encode($template, JSON_PRETTY_PRINT)
-        );
+        // Update the appropriate log file
+        $this->versionService->updateLog($template->id);
 
         // Print to the console
         $this->info('Updated the version log');

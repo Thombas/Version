@@ -1,3 +1,11 @@
+## Installation
+
+You can add this library as a local dependency to your project using  [Composer](https://getcomposer.org/):
+
+```
+composer require thomasfielding/version
+```
+
 ## What is this package?
 
 This package is designed to allow you to log version changes throughout your application development process.  A slightly more manual process than what other packages may be offering, this does allow for more coherent logging of major, minor and patch updates to your system while working as a remote team from one codebase.  
