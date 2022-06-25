@@ -28,8 +28,8 @@ class VersionServiceProvider extends ServiceProvider
     {
         // Booted console commands
         if ($this->app->runningInConsole()) {
-            // Generate the version stub files
-            $this->publishes($this->publishFiles('src/stubs', base_path('version/stubs')), 'template');
+            // Generate the config files
+            $this->publishes($this->publishFiles('config', base_path('config')), 'laravel-assets');
         
             // Registered commands
             $this->commands([

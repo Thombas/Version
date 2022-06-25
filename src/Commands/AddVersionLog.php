@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Str;
 use Illuminate\Console\Command;
 use ThomasFielding\Version\Services\VersionService;
+use Throwable;
 
 class AddVersionLog extends Command
 {
@@ -45,18 +46,11 @@ class AddVersionLog extends Command
      */
     public function handle()
     {
-        // Get the current branch id
-        $git = trim(shell_exec('git rev-parse ' . shell_exec('git rev-parse --abbrev-ref HEAD')));
-
-        // Error check: Ensure a branch has been created and pushed to remote
-        if (!$git) {
-            $this->error('You need to commit your current git branch before creating a log');
-            return;
-        }
-
-        // Error check: Ensure a log can't be created for an existing branch
-        if ($this->versionService->getLogsByBranchId($git)) {
-            $this->error('A log has already been created relating to this git branch');
+        // Fetch the git branch id
+        try {
+            $git = $this->versionService->getGitBranchId();
+        } catch (Throwable $exception) {
+            $this->error($exception->getMessage());
             return;
         }
 
@@ -98,7 +92,10 @@ class AddVersionLog extends Command
         ?string $author
     ): void {
         // Fetch the template
-        $template = json_decode(file_get_contents($this->versionService->getRoot() . '/stubs/template.json'));
+        $template = (Object) array_merge(
+            json_decode(file_get_contents(dirname(__FILE__) . '/../Stubs/template.json'), true),
+            (array) config('version.template', [])
+        );
 
         // Update the template values
         $template->author = $author;

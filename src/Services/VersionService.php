@@ -2,6 +2,9 @@
 
 namespace ThomasFielding\Version\Services;
 
+use ThomasFielding\Version\Exceptions\DuplicateLogException;
+use ThomasFielding\Version\Exceptions\UncommittedBranchException;
+
 class VersionService
 {
     /** @var */
@@ -14,7 +17,7 @@ class VersionService
      */
     public function __construct()
     {
-        $this->root = './version';
+        $this->root = config('version.root', './version');
     }
 
     /**
@@ -144,6 +147,10 @@ class VersionService
     public function getFileById(
         string $id
     ): ?string {
+        // Check that the directory exists
+        $this->checkDirExists($this->root);
+
+        // Get all files in the directory and filter to log id
         $files = array_filter(scandir($this->root), function($item) use ($id) {
             if (is_dir($this->root . '/' . $item)) {
                 return false;
@@ -158,23 +165,80 @@ class VersionService
     }
 
     /**
+     * Get the git branch id
+     *
+     * @throws DuplicateLogException
+     * @throws UncommittedBranchException
+     *
+     * @return string
+     */
+    public function getGitBranchId(): string
+    {
+        // Skip if git control is disabled in the config file
+        if (config('version.git', false) === false) {
+            return '';
+        }
+
+        // Get the current branch id
+        $git = trim(shell_exec('git rev-parse ' . shell_exec('git rev-parse --abbrev-ref HEAD')));
+
+        // Error check: Ensure a branch has been created and pushed to remote
+        if (!$git) {
+            throw new UncommittedBranchException();
+        }
+
+        // Error check: Ensure a log can't be created for an existing branch
+        if ($this->getLogsByBranchId($git)) {
+            throw new DuplicateLogException();
+        }
+
+        return $git;
+    }
+
+    /**
      * Fetch all version logs as a json array
      *
      * @return array
      */
     protected function getLogs(): array
     {
+        // Check that the directory exists
+        $this->checkDirExists($this->root);
+
+        // Fetch all logs for the directory
         $logs = array_filter(scandir($this->root), function($item) {
             return !is_dir($this->root . '/' . $item);
         });
 
+        // Convert the log files into json
         $json = [];
-
         foreach ($logs as $log) {
             $json[] = json_decode(file_get_contents($this->root . '/' . $log));
         }
 
         return $json;
+    }
+
+    /**
+     * Check that the provided directory exists (and if not then create it)
+     *
+     * @param string $directory The directory to scan for
+     *
+     * @return void
+     */
+    protected function checkDirExists($directory): void
+    {
+        // Break the directory into steps/segments
+        $steps = explode('/', $directory);
+
+        // Loop through and build each step of the directory
+        foreach ($steps as $key => $step) {
+            $glue = implode('/', array_slice($steps, 0, $key + 1));
+
+            if ($glue && !is_dir($glue)) {
+                mkdir($glue);
+            }
+        }
     }
 
     /**

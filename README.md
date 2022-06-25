@@ -1,4 +1,7 @@
 ```
+php artisan vendor:publish --provider="ThomasFielding\Version\VersionServiceProvider" --tag="config"
+```
+```
 php artisan vendor:publish --provider="ThomasFielding\Version\VersionServiceProvider" --tag="template"
 ```
 
