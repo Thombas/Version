@@ -2,6 +2,7 @@
 
 namespace ThomasFielding\Version\Commands;
 
+use Throwable;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use ThomasFielding\Version\Services\VersionService;
@@ -44,12 +45,11 @@ class UpdateVersionLog extends Command
      */
     public function handle()
     {
-        // Get the current branch id
-        $git = trim(shell_exec('git rev-parse ' . shell_exec('git rev-parse --abbrev-ref HEAD')));
-
-        // Error check: Ensure a branch has been created and pushed to remote
-        if (!$git) {
-            $this->error('You need to commit your current git branch before updating a log');
+        // Fetch the git branch id
+        try {
+            $git = $this->versionService->getGitBranchId();
+        } catch (Throwable $exception) {
+            $this->error($exception->getMessage());
             return;
         }
 
@@ -59,8 +59,10 @@ class UpdateVersionLog extends Command
             return;
         }
 
+        // Get the log file
         $template = $logs[0];
 
+        // Update the template values
         $template->timestamp = Carbon::now()->getTimestamp();
 
         // Store the template as a new file/log

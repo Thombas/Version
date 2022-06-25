@@ -10,16 +10,6 @@ use ThomasFielding\Version\Commands\GetCurrentVersion;
 class VersionServiceProvider extends ServiceProvider
 {
     /**
-     * Register function
-     *
-     * @return void
-     */
-    public function register(): void
-    {
-        //
-    }
-
-    /**
      * Boot function
      *
      * @return void
