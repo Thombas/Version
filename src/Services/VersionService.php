@@ -22,7 +22,7 @@ class VersionService
         ?string $initial = null,
         ?array $template = null
     ) {
-        $this->root = $root ?? config('version.root', './version');
+        $this->root = base_path() . '/' . ($root ?? config('version.root', './version'));
         $this->initial = $initial ?? config('version.initial', '0.0.0');
         $this->template = $template ?? config('version.template', []);
     }
